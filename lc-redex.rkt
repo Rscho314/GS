@@ -1,57 +1,35 @@
 #lang racket
 
-(require redex
-         redex/tut-subst)
+(require redex)
 
 ;untyped lambda calculus
 (define-language L
-  (E N F A)
-  (N variable-not-otherwise-mentioned)
-  (F (λ (N) E))
-  (A (E E)))
+  (E ::= N
+         (λ (N) E)
+         (E E))
+  (N ::= variable-not-otherwise-mentioned)
+  #:binding-forms
+  (λ (N) E #:refers-to N))
+ 
+(default-language L)
 
-;add numbers
-(define-extended-language LN L
-  (E ....
-     (+ E E) ;test addition
-     number))
-
-;add execution context and values
-(define-extended-language CV LN
-  (p (E ...))
-  (P (E ... C E ...))
-  (C (V C)
+(define-extended-language LC L
+  (C ::=
+     hole
+     (lambda (N) C)
      (C E)
-     (+ V ... C E ...)
-     hole)
-  (V (λ (N) E)
-     number))
+     (E C)))
 
-;lift metafunctions to racket
-(define-metafunction CV
-  Σ : number ... -> number
-  [(Σ number ...)
-   ,(apply + (term (number ...)))])
-
-(define-metafunction CV
-  subst : N V E -> E
-  [(subst N V E)
-   ,(subst/proc N? (list (term N)) (list (term V)) (term E))])
-(define N? (redex-match CV N))
-
-;reduction relations
 (define red
   (reduction-relation
-   CV
-   #:domain p
-   (--> (in-hole P ((λ (N) E) V))
-        (in-hole P (subst N V E))
-        "β")
-   (--> (in-hole P (+ number ...))
-        (in-hole P (Σ number ...))
-        "+")))
+   LC
+   #:domain E
+   (--> (in-hole C ((λ (N) E_1) E_2))
+        (in-hole C (substitute E_1 N E_2))
+        "β")))
 
-;test
-(traces
-   red
-   (term (((λ (x) (+ x 1)) 1))))
+(test-->>
+ red
+ (term ((λ (f) ((λ (a) (f a)) b)) a))
+ (term (a b))) ;α conversion works
+(test-results)
