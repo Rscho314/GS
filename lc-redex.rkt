@@ -10,8 +10,6 @@
   (N ::= variable-not-otherwise-mentioned)
   #:binding-forms
   (λ (N) E #:refers-to N))
- 
-(default-language L)
 
 (define-extended-language LC L
   (C ::=
@@ -19,6 +17,8 @@
      (lambda (N) C)
      (C E)
      (E C)))
+
+(default-language L) ;defines the context for substitution
 
 (define red
   (reduction-relation
